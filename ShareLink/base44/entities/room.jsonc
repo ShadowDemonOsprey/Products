@@ -1,0 +1,32 @@
+{
+  "name": "Room",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Unique 6-character room code"
+    },
+    "password_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the shared secret password"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "closed"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "code",
+    "password_hash"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

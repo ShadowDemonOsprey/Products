@@ -1,0 +1,43 @@
+{
+  "name": "SignalMessage",
+  "type": "object",
+  "properties": {
+    "room_code": {
+      "type": "string",
+      "description": "Room code this signal belongs to"
+    },
+    "sender": {
+      "type": "string",
+      "enum": [
+        "sharer",
+        "viewer"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "sharer-ready",
+        "ready",
+        "offer",
+        "answer",
+        "ice"
+      ]
+    },
+    "payload": {
+      "type": "string",
+      "description": "JSON-stringified SDP or ICE candidate"
+    }
+  },
+  "required": [
+    "room_code",
+    "sender",
+    "type",
+    "payload"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

@@ -10,231 +10,305 @@ const ICE_SERVERS = [
 ];
 
 
-const SOCKET_URL = "http://localhost:3001";
+const SOCKET_URL =
+  import.meta.env.VITE_API_URL;
+
 
 
 export function useSharer(onLog) {
 
-  const [status, setStatus] = useState("idle");
 
-  const [stats] = useState({
-    fps: 0,
-    bandwidth: 0,
-  });
-
-  const [roomCode, setRoomCode] = useState(null);
-
-  const [localStream, setLocalStream] = useState(null);
+  const [status,setStatus] =
+    useState("idle");
 
 
-  const socketRef = useRef(null);
-  const pcRef = useRef(null);
-  const streamRef = useRef(null);
-  const codeRef = useRef(null);
-
-  const onLogRef = useRef(onLog);
-  onLogRef.current = onLog;
+  const [stats] =
+    useState({
+      fps:0,
+      bandwidth:0,
+    });
 
 
 
-  const sendSignal = useCallback(
-    (type, payload) => {
+  const [roomCode,setRoomCode] =
+    useState(null);
 
-      const socket = socketRef.current;
 
-      if (!socket || !socket.connected) {
-        onLogRef.current(
-          "Socket not connected"
+
+  const [localStream,setLocalStream] =
+    useState(null);
+
+
+
+  const socketRef =
+    useRef(null);
+
+
+  const pcRef =
+    useRef(null);
+
+
+  const streamRef =
+    useRef(null);
+
+
+  const codeRef =
+    useRef(null);
+
+
+
+  const onLogRef =
+    useRef(onLog);
+
+
+  onLogRef.current =
+    onLog;
+
+
+
+
+
+
+  const sendSignal =
+    useCallback(
+      (
+        type,
+        payload
+      )=>{
+
+
+        const socket =
+          socketRef.current;
+
+
+
+        if(
+          !socket ||
+          !socket.connected
+        ){
+
+          onLogRef.current(
+            "Socket not connected"
+          );
+
+          return;
+
+        }
+
+
+
+
+        socket.emit(
+          "signal",
+          {
+            room:
+              codeRef.current,
+
+            sender:
+              "sharer",
+
+            type,
+
+            payload
+          }
         );
-        return;
-      }
 
 
-      socket.emit(
-        "signal",
-        {
-          room: codeRef.current,
-          sender: "sharer",
-          type,
-          payload,
-        }
-      );
+
+        onLogRef.current(
+          "Signal sent: " + type
+        );
 
 
-      onLogRef.current(
-        "Signal sent: " + type
-      );
-
-    },
-    []
-  );
+      },
+      []
+    );
 
 
 
 
 
-  const connectSocket = useCallback(
-    (code) => {
-
-
-      const socket = io(
-        SOCKET_URL
-      );
-
-
-      socketRef.current = socket;
 
 
 
-      socket.on(
-        "connect",
-        () => {
 
-          onLogRef.current(
-            "Socket connected"
+  const connectSocket =
+    useCallback(
+      (code)=>{
+
+
+        const socket =
+          io(
+            SOCKET_URL
           );
 
 
-          socket.emit(
-            "join-room",
-            code
-          );
-
-
-          onLogRef.current(
-            "Joined room " + code
-          );
-
-        }
-      );
+        socketRef.current =
+          socket;
 
 
 
+        socket.on(
+          "connect",
+          ()=>{
 
-
-      socket.on(
-        "signal",
-        async(data) => {
-
-
-          if(
-            data.sender === "sharer"
-          ){
-            return;
-          }
-
-
-
-          const pc =
-            pcRef.current;
-
-
-          if(!pc){
-            return;
-          }
-
-
-
-
-          try {
-
-
-
-            if(
-              data.type === "viewer-ready"
-            ){
-
-
-              onLogRef.current(
-                "Viewer joined"
-              );
-
-
-              const offer =
-                await pc.createOffer();
-
-
-
-              await pc.setLocalDescription(
-                offer
-              );
-
-
-
-              sendSignal(
-                "offer",
-                offer
-              );
-
-
-            }
-
-
-
-
-
-
-            if(
-              data.type === "answer"
-            ){
-
-
-              await pc.setRemoteDescription(
-                new RTCSessionDescription(
-                  data.payload
-                )
-              );
-
-
-              onLogRef.current(
-                "Answer received"
-              );
-
-
-            }
-
-
-
-
-
-
-
-            if(
-              data.type === "ice"
-            ){
-
-
-              await pc.addIceCandidate(
-                new RTCIceCandidate(
-                  data.payload
-                )
-              );
-
-
-            }
-
-
-
-
-          }
-          catch(err){
 
             onLogRef.current(
-              "Signal error: " + err.message
+              "Socket connected"
             );
 
+
+
+            socket.emit(
+              "join-room",
+              code
+            );
+
+
+
+            onLogRef.current(
+              "Joined room " + code
+            );
+
+
           }
+        );
 
 
-        }
-      );
 
 
-    },
-    [
-      sendSignal
-    ]
-  );
+
+
+
+        socket.on(
+          "signal",
+          async(data)=>{
+
+
+            if(
+              data.sender==="sharer"
+            ){
+              return;
+            }
+
+
+
+            const pc =
+              pcRef.current;
+
+
+
+            if(!pc){
+              return;
+            }
+
+
+
+
+            try{
+
+
+              if(
+                data.type==="viewer-ready"
+              ){
+
+
+                onLogRef.current(
+                  "Viewer joined"
+                );
+
+
+
+                const offer =
+                  await pc.createOffer();
+
+
+
+                await pc.setLocalDescription(
+                  offer
+                );
+
+
+
+                sendSignal(
+                  "offer",
+                  offer
+                );
+
+
+              }
+
+
+
+
+
+              if(
+                data.type==="answer"
+              ){
+
+
+                await pc.setRemoteDescription(
+                  new RTCSessionDescription(
+                    data.payload
+                  )
+                );
+
+
+
+                onLogRef.current(
+                  "Answer received"
+                );
+
+              }
+
+
+
+
+
+
+
+              if(
+                data.type==="ice"
+              ){
+
+
+                await pc.addIceCandidate(
+                  new RTCIceCandidate(
+                    data.payload
+                  )
+                );
+
+
+              }
+
+
+
+
+
+            }
+            catch(err){
+
+
+              onLogRef.current(
+                "Signal error: " +
+                err.message
+              );
+
+
+            }
+
+
+          }
+        );
+
+
+      },
+      [
+        sendSignal
+      ]
+    );
+
+
 
 
 
@@ -270,7 +344,7 @@ export function useSharer(onLog) {
             new Uint8Array(hashBuffer)
           )
           .map(
-            b =>
+            b=>
             b.toString(16)
             .padStart(2,"0")
           )
@@ -279,26 +353,39 @@ export function useSharer(onLog) {
 
 
 
+
         await apiPost(
           "/api/rooms",
           {
             code,
-            password_hash: hash,
-            status:"active",
+
+            password_hash:
+              hash,
+
+            status:
+              "active"
           }
         );
 
 
 
-        codeRef.current = code;
 
-        setRoomCode(code);
+
+        codeRef.current =
+          code;
+
+
+
+        setRoomCode(
+          code
+        );
 
 
 
         connectSocket(
           code
         );
+
 
 
         onLogRef.current(
@@ -311,6 +398,8 @@ export function useSharer(onLog) {
         connectSocket
       ]
     );
+
+
 
 
 
@@ -332,15 +421,21 @@ export function useSharer(onLog) {
                   settings?.fps || 30
                 }
               },
-              audio:false,
+
+              audio:false
             }
           );
 
 
 
-        streamRef.current = stream;
+        streamRef.current =
+          stream;
 
-        setLocalStream(stream);
+
+
+        setLocalStream(
+          stream
+        );
 
 
 
@@ -356,26 +451,32 @@ export function useSharer(onLog) {
 
 
 
-        pcRef.current = pc;
+        pcRef.current =
+          pc;
+
+
 
 
 
 
         stream.getTracks()
         .forEach(
-          track =>
-            pc.addTrack(
-              track,
-              stream
-            )
+          track=>
+          pc.addTrack(
+            track,
+            stream
+          )
         );
 
 
 
 
 
+
+
         pc.onicecandidate =
-          event => {
+          event=>{
+
 
             if(
               event.candidate
@@ -388,21 +489,28 @@ export function useSharer(onLog) {
 
             }
 
+
           };
+
+
 
 
 
 
 
         pc.onconnectionstatechange =
-          () => {
+          ()=>{
+
 
             onLogRef.current(
               "Connection: " +
               pc.connectionState
             );
 
+
           };
+
+
 
 
 
@@ -410,6 +518,7 @@ export function useSharer(onLog) {
         setStatus(
           "waiting"
         );
+
 
 
         onLogRef.current(
@@ -443,13 +552,16 @@ export function useSharer(onLog) {
         );
 
 
+
         pcRef.current?.close();
 
 
-        pcRef.current = null;
+        pcRef.current=null;
+
 
 
         setLocalStream(null);
+
 
         setStatus(
           "idle"
@@ -459,6 +571,7 @@ export function useSharer(onLog) {
       },
       []
     );
+
 
 
 
@@ -483,6 +596,7 @@ export function useSharer(onLog) {
         setRoomCode(null);
 
 
+
       },
       [
         stopSharing
@@ -505,6 +619,7 @@ export function useSharer(onLog) {
 
         socketRef.current?.disconnect();
 
+
         stopSharing();
 
 
@@ -516,6 +631,7 @@ export function useSharer(onLog) {
       stopSharing
     ]
   );
+
 
 
 
@@ -539,7 +655,7 @@ export function useSharer(onLog) {
 
     stopSharing,
 
-    disconnect,
+    disconnect
 
   };
 

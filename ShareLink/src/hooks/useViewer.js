@@ -10,14 +10,15 @@ const ICE_SERVERS = [
 ];
 
 
-const SOCKET_URL = "http://localhost:3001";
+const SOCKET_URL =
+  import.meta.env.VITE_API_URL;
 
 
 
 export function useViewer(onLog) {
 
 
-  const [status, setStatus] =
+  const [status,setStatus] =
     useState("idle");
 
 
@@ -39,11 +40,11 @@ export function useViewer(onLog) {
 
 
 
-  const pcRef =
+  const socketRef =
     useRef(null);
 
 
-  const socketRef =
+  const pcRef =
     useRef(null);
 
 
@@ -84,6 +85,7 @@ export function useViewer(onLog) {
           socketRef.current;
 
 
+
         if(
           !socket ||
           !socket.connected
@@ -99,18 +101,24 @@ export function useViewer(onLog) {
 
 
 
+
         socket.emit(
           "signal",
           {
+
             room:
               codeRef.current,
+
 
             sender:
               "viewer",
 
+
             type,
 
-            payload,
+
+            payload
+
           }
         );
 
@@ -144,9 +152,9 @@ export function useViewer(onLog) {
           );
 
 
-
         socketRef.current =
           socket;
+
 
 
 
@@ -177,20 +185,24 @@ export function useViewer(onLog) {
 
 
 
-            /*
-              Tell sharer we are ready
-            */
-
             socket.emit(
               "signal",
               {
-                room:code,
 
-                sender:"viewer",
+                room:
+                  code,
 
-                type:"viewer-ready",
 
-                payload:{},
+                sender:
+                  "viewer",
+
+
+                type:
+                  "viewer-ready",
+
+
+                payload:{}
+
               }
             );
 
@@ -217,16 +229,13 @@ export function useViewer(onLog) {
           async(data)=>{
 
 
-            /*
-              Ignore own messages
-            */
-
             if(
               data.sender === "viewer"
             ){
-              return;
-            }
 
+              return;
+
+            }
 
 
 
@@ -237,7 +246,9 @@ export function useViewer(onLog) {
 
 
             if(!pc){
+
               return;
+
             }
 
 
@@ -250,11 +261,6 @@ export function useViewer(onLog) {
 
 
 
-
-
-              /*
-                Receive offer
-              */
 
               if(
                 data.type === "offer"
@@ -271,8 +277,10 @@ export function useViewer(onLog) {
 
 
 
+
                 const answer =
                   await pc.createAnswer();
+
 
 
 
@@ -284,10 +292,13 @@ export function useViewer(onLog) {
 
 
 
+
                 sendSignal(
                   "answer",
                   answer
                 );
+
+
 
 
 
@@ -299,16 +310,18 @@ export function useViewer(onLog) {
 
 
 
-
                 for(
                   const candidate of pendingCandidates.current
                 ){
+
 
                   await pc.addIceCandidate(
                     candidate
                   );
 
+
                 }
+
 
 
                 pendingCandidates.current=[];
@@ -322,9 +335,6 @@ export function useViewer(onLog) {
 
 
 
-              /*
-                Receive ICE
-              */
 
               if(
                 data.type === "ice"
@@ -339,16 +349,19 @@ export function useViewer(onLog) {
 
 
 
+
                 if(
                   pc.remoteDescription
                 ){
+
 
                   await pc.addIceCandidate(
                     candidate
                   );
 
+
                 }
-                else {
+                else{
 
 
                   pendingCandidates.current.push(
@@ -376,7 +389,6 @@ export function useViewer(onLog) {
 
 
             }
-
 
 
 
@@ -449,12 +461,14 @@ export function useViewer(onLog) {
 
 
 
+
           const hashBuffer =
             await crypto.subtle.digest(
               "SHA-256",
               new TextEncoder()
               .encode(password)
             );
+
 
 
 
@@ -471,6 +485,8 @@ export function useViewer(onLog) {
               .padStart(2,"0")
             )
             .join("");
+
+
 
 
 
@@ -518,7 +534,6 @@ export function useViewer(onLog) {
 
 
 
-
           const pc =
             new RTCPeerConnection(
               {
@@ -547,16 +562,17 @@ export function useViewer(onLog) {
                 event.candidate
               ){
 
+
                 sendSignal(
                   "ice",
                   event.candidate
                 );
 
+
               }
 
 
             };
-
 
 
 
@@ -595,7 +611,6 @@ export function useViewer(onLog) {
 
 
 
-
           pc.onconnectionstatechange =
             ()=>{
 
@@ -614,10 +629,10 @@ export function useViewer(onLog) {
 
 
 
+
           setupSocket(
             code
           );
-
 
 
 
@@ -684,6 +699,7 @@ export function useViewer(onLog) {
 
 
 
+
         socketRef.current?.disconnect();
 
 
@@ -698,9 +714,11 @@ export function useViewer(onLog) {
         setRoomCode(null);
 
 
+
         setStatus(
           "idle"
         );
+
 
 
         pendingCandidates.current=[];
@@ -715,6 +733,7 @@ export function useViewer(onLog) {
       },
       []
     );
+
 
 
 
@@ -763,7 +782,7 @@ export function useViewer(onLog) {
 
     connect,
 
-    disconnect,
+    disconnect
 
   };
 

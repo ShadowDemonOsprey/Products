@@ -6,31 +6,55 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
+import dotenv from "dotenv";
 
 
-const PORT = 3001;
-
-const JWT_SECRET = "sharelink-local-secret";
-
-
-const app = express();
-
-const server = http.createServer(app);
+dotenv.config();
 
 
 
-const io = new Server(
-  server,
-  {
-    cors: {
-      origin: "*",
-    },
-  }
+const PORT =
+  process.env.PORT || 3001;
+
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "sharelink-local-secret";
+
+
+
+const app =
+  express();
+
+
+const server =
+  http.createServer(app);
+
+
+
+
+
+const io =
+  new Server(
+    server,
+    {
+      cors:{
+        origin:"*",
+        methods:[
+          "GET",
+          "POST"
+        ]
+      }
+    }
+  );
+
+
+
+
+
+app.use(
+  cors()
 );
 
-
-
-app.use(cors());
 
 app.use(
   express.json()
@@ -38,19 +62,33 @@ app.use(
 
 
 
-const DATA_DIR = "./server/data";
 
 
-if (!fs.existsSync(DATA_DIR)) {
+
+
+const DATA_DIR =
+  path.join(
+    process.cwd(),
+    "data"
+  );
+
+
+
+if(
+  !fs.existsSync(DATA_DIR)
+){
 
   fs.mkdirSync(
     DATA_DIR,
     {
-      recursive: true,
+      recursive:true
     }
   );
 
 }
+
+
+
 
 
 
@@ -61,11 +99,13 @@ const USERS_FILE =
   );
 
 
+
 const ROOMS_FILE =
   path.join(
     DATA_DIR,
     "rooms.json"
   );
+
 
 
 const SIGNALS_FILE =
@@ -78,9 +118,16 @@ const SIGNALS_FILE =
 
 
 
-function loadFile(file) {
 
-  if (!fs.existsSync(file)) {
+
+
+
+function loadFile(file){
+
+
+  if(
+    !fs.existsSync(file)
+  ){
 
     fs.writeFileSync(
       file,
@@ -88,6 +135,7 @@ function loadFile(file) {
     );
 
   }
+
 
 
   return JSON.parse(
@@ -103,10 +151,13 @@ function loadFile(file) {
 
 
 
+
+
+
 function saveFile(
   file,
   data
-) {
+){
 
   fs.writeFileSync(
     file,
@@ -123,21 +174,34 @@ function saveFile(
 
 
 
+
+
+
+
 // Health check
 
 app.get(
   "/",
-  (req, res) => {
+  (req,res)=>{
+
 
     res.json(
       {
         status:
           "ShareLink backend running",
+
+        time:
+          new Date()
       }
     );
 
+
   }
 );
+
+
+
+
 
 
 
@@ -147,52 +211,59 @@ app.get(
 
 app.post(
   "/api/register",
-  async (
-    req,
-    res
-  ) => {
-
-    const {
-      email,
-      password,
-    } = req.body;
+  async(req,res)=>{
 
 
+    try{
 
-    const users =
-      loadFile(
-        USERS_FILE
-      );
+
+      const {
+        email,
+        password
+      } = req.body;
 
 
 
-    if (
-      users.find(
-        (user) =>
-          user.email === email
-      )
-    ) {
-
-      return res.status(400).json(
-        {
-          error:
-            "User already exists",
-        }
-      );
-
-    }
+      const users =
+        loadFile(
+          USERS_FILE
+        );
 
 
 
-    const hash =
-      await bcrypt.hash(
-        password,
-        10
-      );
+      if(
+        users.find(
+          u =>
+          u.email === email
+        )
+      ){
+
+        return res.status(400)
+        .json(
+          {
+            error:
+              "User already exists"
+          }
+        );
+
+      }
 
 
 
-    users.push(
+
+
+
+      const hash =
+        await bcrypt.hash(
+          password,
+          10
+        );
+
+
+
+
+
+      const user =
       {
         id:
           Date.now(),
@@ -200,28 +271,55 @@ app.post(
         email,
 
         password:
-          hash,
-      }
-    );
+          hash
+      };
 
 
 
-    saveFile(
-      USERS_FILE,
-      users
-    );
+
+
+      users.push(
+        user
+      );
 
 
 
-    res.json(
-      {
-        success:
-          true,
-      }
-    );
+      saveFile(
+        USERS_FILE,
+        users
+      );
+
+
+
+      res.json(
+        {
+          success:true
+        }
+      );
+
+
+    }
+    catch(err){
+
+
+      res.status(500)
+      .json(
+        {
+          error:
+            err.message
+        }
+      );
+
+
+    }
+
 
   }
 );
+
+
+
+
 
 
 
@@ -231,95 +329,124 @@ app.post(
 
 app.post(
   "/api/login",
-  async (
-    req,
-    res
-  ) => {
-
-    const {
-      email,
-      password,
-    } = req.body;
+  async(req,res)=>{
 
 
+    try{
 
-    const users =
-      loadFile(
-        USERS_FILE
-      );
+
+      const {
+        email,
+        password
+      } = req.body;
 
 
 
-    const user =
-      users.find(
-        (item) =>
-          item.email === email
-      );
+      const users =
+        loadFile(
+          USERS_FILE
+        );
 
 
 
-    if (!user) {
-
-      return res.status(401).json(
-        {
-          error:
-            "Invalid login",
-        }
-      );
-
-    }
+      const user =
+        users.find(
+          u =>
+          u.email === email
+        );
 
 
 
-    const valid =
-      await bcrypt.compare(
-        password,
-        user.password
-      );
+      if(!user){
+
+        return res.status(401)
+        .json(
+          {
+            error:
+              "Invalid login"
+          }
+        );
+
+      }
 
 
 
-    if (!valid) {
-
-      return res.status(401).json(
-        {
-          error:
-            "Invalid login",
-        }
-      );
-
-    }
 
 
 
-    const token =
-      jwt.sign(
-        {
-          id:
-            user.id,
-
-          email:
-            user.email,
-        },
-        JWT_SECRET
-      );
+      const valid =
+        await bcrypt.compare(
+          password,
+          user.password
+        );
 
 
 
-    res.json(
-      {
-        token,
 
-        user:
+      if(!valid){
+
+        return res.status(401)
+        .json(
+          {
+            error:
+              "Invalid login"
+          }
+        );
+
+      }
+
+
+
+
+
+      const token =
+        jwt.sign(
           {
             id:
               user.id,
 
             email:
-              user.email,
+              user.email
+
           },
-      }
-    );
+          JWT_SECRET
+        );
+
+
+
+
+
+      res.json(
+        {
+          token,
+
+          user:
+          {
+            id:
+              user.id,
+
+            email:
+              user.email
+          }
+        }
+      );
+
+
+    }
+    catch(err){
+
+
+      res.status(500)
+      .json(
+        {
+          error:
+            err.message
+        }
+      );
+
+
+    }
+
 
   }
 );
@@ -330,14 +457,13 @@ app.post(
 
 
 
-// Create room
+
+
+// Create Room
 
 app.post(
   "/api/rooms",
-  (
-    req,
-    res
-  ) => {
+  (req,res)=>{
 
 
     const rooms =
@@ -352,7 +478,7 @@ app.post(
         ...req.body,
 
         created_at:
-          Date.now(),
+          Date.now()
       }
     );
 
@@ -367,13 +493,12 @@ app.post(
 
     res.json(
       {
-        success:
-          true,
+        success:true,
 
-        room:
-          req.body,
+        room:req.body
       }
     );
+
 
   }
 );
@@ -384,19 +509,19 @@ app.post(
 
 
 
-// Find room
+
+
+// Find Room
 
 app.get(
   "/api/rooms",
-  (
-    req,
-    res
-  ) => {
+  (req,res)=>{
 
 
     const {
-      code,
-    } = req.query;
+      code
+    } =
+    req.query;
 
 
 
@@ -409,7 +534,7 @@ app.get(
 
     const result =
       rooms.filter(
-        (room) =>
+        room =>
           room.code === code &&
           room.status === "active"
       );
@@ -420,6 +545,7 @@ app.get(
       result
     );
 
+
   }
 );
 
@@ -429,14 +555,13 @@ app.get(
 
 
 
-// Create signal message
+
+
+// Optional REST signal storage
 
 app.post(
   "/api/signal",
-  (
-    req,
-    res
-  ) => {
+  (req,res)=>{
 
 
     const signals =
@@ -450,8 +575,8 @@ app.post(
       {
         ...req.body,
 
-        created_date:
-          Date.now(),
+        created_at:
+          Date.now()
       }
     );
 
@@ -466,10 +591,10 @@ app.post(
 
     res.json(
       {
-        success:
-          true,
+        success:true
       }
     );
+
 
   }
 );
@@ -480,20 +605,18 @@ app.post(
 
 
 
-// Read signal messages
+
 
 app.get(
   "/api/signal",
-  (
-    req,
-    res
-  ) => {
+  (req,res)=>{
 
 
     const {
       room_code,
-      sender,
-    } = req.query;
+      sender
+    } =
+    req.query;
 
 
 
@@ -504,21 +627,21 @@ app.get(
 
 
 
-    const result =
-      signals.filter(
-        (signal) =>
-          signal.room_code === room_code &&
-          signal.sender === sender
-      );
-
-
-
     res.json(
-      result
+      signals.filter(
+        s =>
+        s.room_code === room_code &&
+        s.sender === sender
+      )
     );
+
 
   }
 );
+
+
+
+
 
 
 
@@ -530,43 +653,80 @@ app.get(
 
 io.on(
   "connection",
-  (
-    socket
-  ) => {
+  socket=>{
+
+
+    console.log(
+      "Socket connected:",
+      socket.id
+    );
+
+
+
 
 
     socket.on(
       "join-room",
-      (
-        room
-      ) => {
+      room=>{
+
 
         socket.join(
           room
         );
 
+
+        console.log(
+          socket.id,
+          "joined",
+          room
+        );
+
+
       }
     );
+
+
+
+
 
 
 
     socket.on(
       "signal",
-      (
-        data
-      ) => {
+      data=>{
 
-        socket
-          .to(
-            data.room
-          )
-          .emit(
-            "signal",
-            data
-          );
+
+        socket.to(
+          data.room
+        )
+        .emit(
+          "signal",
+          data
+        );
+
 
       }
     );
+
+
+
+
+
+
+    socket.on(
+      "disconnect",
+      ()=>{
+
+
+        console.log(
+          "Socket disconnected:",
+          socket.id
+        );
+
+
+      }
+    );
+
 
 
   }
@@ -578,13 +738,16 @@ io.on(
 
 
 
+
 server.listen(
   PORT,
-  () => {
+  ()=>{
+
 
     console.log(
       `ShareLink backend running on http://localhost:${PORT}`
     );
+
 
   }
 );

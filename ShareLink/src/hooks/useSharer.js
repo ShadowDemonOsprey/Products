@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { io } from "socket.io-client";
-import { base44 } from "@/api/base44Client";
+import { apiPost } from "@/lib/api";
 
 
 const ICE_SERVERS = [
@@ -15,15 +15,16 @@ const SOCKET_URL = "http://localhost:3001";
 
 export function useSharer(onLog) {
 
-
   const [status, setStatus] = useState("idle");
-  const [stats, setStats] = useState({
-    fps:0,
-    bandwidth:0,
+
+  const [stats] = useState({
+    fps: 0,
+    bandwidth: 0,
   });
 
-  const [roomCode,setRoomCode] = useState(null);
-  const [localStream,setLocalStream] = useState(null);
+  const [roomCode, setRoomCode] = useState(null);
+
+  const [localStream, setLocalStream] = useState(null);
 
 
   const socketRef = useRef(null);
@@ -37,29 +38,25 @@ export function useSharer(onLog) {
 
 
   const sendSignal = useCallback(
-    (type,payload)=>{
+    (type, payload) => {
 
       const socket = socketRef.current;
 
-
-      if(!socket || !socket.connected){
-
+      if (!socket || !socket.connected) {
         onLogRef.current(
-          "Cannot send. Socket not connected"
+          "Socket not connected"
         );
-
         return;
-
       }
 
 
       socket.emit(
         "signal",
         {
-          room:codeRef.current,
-          sender:"sharer",
+          room: codeRef.current,
+          sender: "sharer",
           type,
-          payload
+          payload,
         }
       );
 
@@ -67,7 +64,6 @@ export function useSharer(onLog) {
       onLogRef.current(
         "Signal sent: " + type
       );
-
 
     },
     []
@@ -78,7 +74,7 @@ export function useSharer(onLog) {
 
 
   const connectSocket = useCallback(
-    (code)=>{
+    (code) => {
 
 
       const socket = io(
@@ -92,8 +88,7 @@ export function useSharer(onLog) {
 
       socket.on(
         "connect",
-        ()=>{
-
+        () => {
 
           onLogRef.current(
             "Socket connected"
@@ -110,24 +105,28 @@ export function useSharer(onLog) {
             "Joined room " + code
           );
 
-
         }
       );
 
 
 
 
+
       socket.on(
         "signal",
-        async(data)=>{
+        async(data) => {
 
 
-          if(data.sender==="sharer"){
+          if(
+            data.sender === "sharer"
+          ){
             return;
           }
 
 
-          const pc = pcRef.current;
+
+          const pc =
+            pcRef.current;
 
 
           if(!pc){
@@ -136,10 +135,14 @@ export function useSharer(onLog) {
 
 
 
-          try{
+
+          try {
 
 
-            if(data.type==="ready"){
+
+            if(
+              data.type === "viewer-ready"
+            ){
 
 
               onLogRef.current(
@@ -151,9 +154,11 @@ export function useSharer(onLog) {
                 await pc.createOffer();
 
 
+
               await pc.setLocalDescription(
                 offer
               );
+
 
 
               sendSignal(
@@ -166,7 +171,12 @@ export function useSharer(onLog) {
 
 
 
-            if(data.type==="answer"){
+
+
+
+            if(
+              data.type === "answer"
+            ){
 
 
               await pc.setRemoteDescription(
@@ -180,11 +190,18 @@ export function useSharer(onLog) {
                 "Answer received"
               );
 
+
             }
 
 
 
-            if(data.type==="ice"){
+
+
+
+
+            if(
+              data.type === "ice"
+            ){
 
 
               await pc.addIceCandidate(
@@ -195,6 +212,7 @@ export function useSharer(onLog) {
 
 
             }
+
 
 
 
@@ -223,175 +241,190 @@ export function useSharer(onLog) {
 
 
 
-  const createRoom = useCallback(
-    async(password)=>{
+
+  const createRoom =
+    useCallback(
+      async(password)=>{
 
 
-      const code =
-        Math.random()
-        .toString(36)
-        .substring(2,8)
-        .toUpperCase();
-
-
-
-      const hashBuffer =
-        await crypto.subtle.digest(
-          "SHA-256",
-          new TextEncoder().encode(password)
-        );
-
-
-      const hash =
-        Array.from(
-          new Uint8Array(hashBuffer)
-        )
-        .map(
-          b=>b.toString(16).padStart(2,"0")
-        )
-        .join("");
-
-
-
-      await base44.entities.Room.create(
-        {
-          code,
-          password_hash:hash,
-          status:"active"
-        }
-      );
-
-
-
-      codeRef.current = code;
-
-      setRoomCode(code);
-
-
-
-      connectSocket(code);
-
-
-
-      onLogRef.current(
-        "Room created: " + code
-      );
-
-
-      return code;
-
-
-    },
-    [
-      connectSocket
-    ]
-  );
+        const code =
+          Math.random()
+          .toString(36)
+          .substring(2,8)
+          .toUpperCase();
 
 
 
 
-
-
-  const startSharing = useCallback(
-    async(settings)=>{
-
-
-      const stream =
-        await navigator.mediaDevices.getDisplayMedia(
-          {
-            video:{
-              frameRate:{
-                ideal:
-                  settings?.fps || 30
-              }
-            },
-            audio:false
-          }
-        );
-
-
-
-      streamRef.current = stream;
-
-      setLocalStream(stream);
-
-
-
-      const pc =
-        new RTCPeerConnection(
-          {
-            iceServers:ICE_SERVERS
-          }
-        );
-
-
-
-      pcRef.current = pc;
-
-
-
-      stream.getTracks()
-      .forEach(
-        track =>
-          pc.addTrack(
-            track,
-            stream
-          )
-      );
-
-
-
-      pc.onicecandidate =
-        e=>{
-
-          if(e.candidate){
-
-            sendSignal(
-              "ice",
-              e.candidate
-            );
-
-          }
-
-        };
-
-
-
-      pc.onconnectionstatechange =
-        ()=>{
-
-          onLogRef.current(
-            "Connection: " +
-            pc.connectionState
+        const hashBuffer =
+          await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder()
+            .encode(password)
           );
 
-        };
+
+
+        const hash =
+          Array.from(
+            new Uint8Array(hashBuffer)
+          )
+          .map(
+            b =>
+            b.toString(16)
+            .padStart(2,"0")
+          )
+          .join("");
 
 
 
-      setStatus(
-        "waiting"
-      );
+
+        await apiPost(
+          "/api/rooms",
+          {
+            code,
+            password_hash: hash,
+            status:"active",
+          }
+        );
 
 
 
-      onLogRef.current(
-        "Screen capture started"
-      );
+        codeRef.current = code;
+
+        setRoomCode(code);
 
 
 
-      sendSignal(
-        "sharer-ready",
-        {}
-      );
+        connectSocket(
+          code
+        );
 
 
-    },
-    [
-      sendSignal
-    ]
-  );
+        onLogRef.current(
+          "Room created: " + code
+        );
+
+
+      },
+      [
+        connectSocket
+      ]
+    );
+
+
+
+
+
+
+
+  const startSharing =
+    useCallback(
+      async(settings)=>{
+
+
+        const stream =
+          await navigator.mediaDevices.getDisplayMedia(
+            {
+              video:{
+                frameRate:{
+                  ideal:
+                  settings?.fps || 30
+                }
+              },
+              audio:false,
+            }
+          );
+
+
+
+        streamRef.current = stream;
+
+        setLocalStream(stream);
+
+
+
+
+
+        const pc =
+          new RTCPeerConnection(
+            {
+              iceServers:
+              ICE_SERVERS
+            }
+          );
+
+
+
+        pcRef.current = pc;
+
+
+
+
+        stream.getTracks()
+        .forEach(
+          track =>
+            pc.addTrack(
+              track,
+              stream
+            )
+        );
+
+
+
+
+
+        pc.onicecandidate =
+          event => {
+
+            if(
+              event.candidate
+            ){
+
+              sendSignal(
+                "ice",
+                event.candidate
+              );
+
+            }
+
+          };
+
+
+
+
+
+        pc.onconnectionstatechange =
+          () => {
+
+            onLogRef.current(
+              "Connection: " +
+              pc.connectionState
+            );
+
+          };
+
+
+
+
+        setStatus(
+          "waiting"
+        );
+
+
+        onLogRef.current(
+          "Screen capture started"
+        );
+
+
+
+      },
+      [
+        sendSignal
+      ]
+    );
+
+
 
 
 
@@ -401,6 +434,7 @@ export function useSharer(onLog) {
   const stopSharing =
     useCallback(
       ()=>{
+
 
         streamRef.current
         ?.getTracks()
@@ -412,17 +446,50 @@ export function useSharer(onLog) {
         pcRef.current?.close();
 
 
-        pcRef.current=null;
+        pcRef.current = null;
 
 
         setLocalStream(null);
 
-        setStatus("idle");
+        setStatus(
+          "idle"
+        );
 
 
       },
       []
     );
+
+
+
+
+
+
+
+  const disconnect =
+    useCallback(
+      ()=>{
+
+
+        stopSharing();
+
+
+        socketRef.current?.disconnect();
+
+
+        socketRef.current=null;
+
+
+        setRoomCode(null);
+
+
+      },
+      [
+        stopSharing
+      ]
+    );
+
+
 
 
 
@@ -437,7 +504,6 @@ export function useSharer(onLog) {
 
 
         socketRef.current?.disconnect();
-
 
         stopSharing();
 
@@ -455,16 +521,25 @@ export function useSharer(onLog) {
 
 
 
+
+
   return {
 
     status,
+
     stats,
+
     roomCode,
+
     localStream,
 
     createRoom,
+
     startSharing,
-    stopSharing
+
+    stopSharing,
+
+    disconnect,
 
   };
 

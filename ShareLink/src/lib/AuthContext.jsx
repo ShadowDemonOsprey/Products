@@ -11,8 +11,11 @@ import { base44 } from "@/api/base44Client";
 const AuthContext = createContext(null);
 
 
+
 export const AuthProvider = ({ children }) => {
+
   const [user, setUser] = useState(null);
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -20,37 +23,82 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
 
 
+
   useEffect(() => {
     checkAuth();
   }, []);
 
 
+
   const checkAuth = async () => {
+
     try {
-      const currentUser = await base44.auth.me();
+
+      const currentUser =
+        await base44.auth.me();
+
 
       setUser(currentUser);
+
       setIsAuthenticated(true);
+
     } catch (error) {
+
       setUser(null);
+
       setIsAuthenticated(false);
+
     } finally {
+
       setIsLoadingAuth(false);
+
     }
+
   };
+
+
+
+  const login = (result) => {
+
+    if (!result || !result.user) {
+      throw new Error(
+        "Invalid login response"
+      );
+    }
+
+
+    setUser(result.user);
+
+    setIsAuthenticated(true);
+
+    setAuthError(null);
+
+  };
+
 
 
   const logout = () => {
+
     base44.auth.logout();
+
+    setUser(null);
+
+    setIsAuthenticated(false);
+
   };
+
 
 
   const navigateToLogin = () => {
+
     window.location.href = "/login";
+
   };
 
 
+
   const value = {
+
     user,
 
     isAuthenticated,
@@ -61,32 +109,50 @@ export const AuthProvider = ({ children }) => {
 
     authError,
 
+
+    login,
+
     logout,
 
     navigateToLogin,
 
+
     checkUserAuth: checkAuth,
 
     checkAppState: checkAuth,
+
   };
 
 
+
   return (
+
     <AuthContext.Provider value={value}>
+
       {children}
+
     </AuthContext.Provider>
+
   );
+
 };
 
 
+
 export const useAuth = () => {
+
   const context = useContext(AuthContext);
 
+
   if (!context) {
+
     throw new Error(
       "useAuth must be used inside AuthProvider"
     );
+
   }
 
+
   return context;
+
 };

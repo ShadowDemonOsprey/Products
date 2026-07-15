@@ -4,14 +4,9 @@ import { queryClientInstance } from "@/lib/query-client";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 import PageNotFound from "./lib/PageNotFound";
-import { AuthProvider, useAuth } from "@/lib/AuthContext";
-import UserNotRegisteredError from "@/components/UserNotRegisteredError";
+import { AuthProvider } from "@/lib/AuthContext";
 import ScrollToTop from "./components/ScrollToTop";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
-import { Navigate } from "react-router-dom";
-
-// Pages
 import Home from "@/pages/Home";
 import Share from "@/pages/Share";
 import Connect from "@/pages/Connect";
@@ -21,77 +16,36 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 
 
-const AuthenticatedApp = () => {
-  const {
-    isLoadingAuth,
-    isLoadingPublicSettings,
-    authError,
-    navigateToLogin,
-  } = useAuth();
-
-
-  // Loading screen while Base44 checks authentication
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-
-  // Authentication errors
-  if (authError) {
-    if (authError.type === "user_not_registered") {
-      return <UserNotRegisteredError />;
-    }
-
-    if (authError.type === "auth_required") {
-      navigateToLogin();
-      return null;
-    }
-  }
-
-
+function AppRoutes() {
   return (
     <Routes>
 
-      {/* Public authentication routes */}
+      {/* Public authentication */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
+      {/* Application */}
+      <Route path="/" element={<Home />} />
+      <Route path="/share" element={<Share />} />
+      <Route path="/connect" element={<Connect />} />
 
-      {/* Protected application routes */}
-      <Route
-        element={
-          <ProtectedRoute
-            unauthenticatedElement={<Navigate to="/login" replace />}
-          />
-        }
-      >
-        <Route path="/" element={<Home />} />
-        <Route path="/share" element={<Share />} />
-        <Route path="/connect" element={<Connect />} />
-      </Route>
-
-
-      {/* Catch-all */}
+      {/* Catch all */}
       <Route path="*" element={<PageNotFound />} />
 
     </Routes>
   );
-};
+}
 
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
-          <AuthenticatedApp />
+          <AppRoutes />
         </Router>
 
         <Toaster />
@@ -99,6 +53,3 @@ function App() {
     </AuthProvider>
   );
 }
-
-
-export default App;

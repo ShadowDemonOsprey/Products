@@ -15,5 +15,10 @@ export default defineConfig({
       visualEditAgent: true
     }),
     react(),
-  ]
+  ],
+
+  server: {
+    host: "0.0.0.0",
+    port: 5173,
+  },
 });

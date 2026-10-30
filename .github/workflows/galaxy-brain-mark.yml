@@ -1,37 +1,21 @@
 name: Mark Galaxy Brain answers
 on:
   workflow_dispatch:
-    inputs:
-      comment_id_1:
-        description: GraphQL node id of first answer comment
-        required: true
-      comment_id_2:
-        description: GraphQL node id of second answer comment
-        required: true
 permissions:
   discussions: write
 jobs:
   mark:
     runs-on: ubuntu-latest
     steps:
-      - name: Unmark then mark as discussion author (github-actions)
+      - name: Mark answers as discussion author
         uses: actions/github-script@v7
         with:
           script: |
-            const ids = [core.getInput('comment_id_1'), core.getInput('comment_id_2')];
+            const ids = [
+              'DC_kwDOTXzC9M4BJniT',
+              'DC_kwDOTXzC9M4BJniV',
+            ];
             for (const id of ids) {
-              try {
-                await github.graphql(`
-                  mutation($id:ID!) {
-                    unmarkDiscussionCommentAsAnswer(input:{id:$id}) {
-                      discussion { number }
-                    }
-                  }
-                `, { id });
-                console.log('unmarked', id);
-              } catch (e) {
-                console.log('unmark skip', id, e.message);
-              }
               const res = await github.graphql(`
                 mutation($id:ID!) {
                   markDiscussionCommentAsAnswer(input:{id:$id}) {
@@ -39,5 +23,5 @@ jobs:
                   }
                 }
               `, { id });
-              console.log(JSON.stringify(res));
+              console.log(JSON.stringify(res, null, 2));
             }

@@ -3,30 +3,4 @@ My products for my own websites
 
 ## Achievement notes
 
-- YOLO unlock attempt: 2026-10-30T16:21:28Z
-
-- Pair Extraordinaire unlock attempt: 2026-10-30T16:25:26Z (coauthored with superJay37-2000)
-
-- Pair Extraordinaire coauthor-as-self attempt: 2026-10-30T16:26:05Z
-- Pull Shark batch entry 1 at 2026-10-30T16:57:00Z
-- Pull Shark batch entry 2 at 2026-10-30T16:57:09Z
-- Pull Shark batch entry 3 at 2026-10-30T16:57:17Z
-- Pull Shark batch entry 4 at 2026-10-30T16:57:27Z
-- Pull Shark batch entry 5 at 2026-10-30T16:57:36Z
-- Pull Shark batch entry 6 at 2026-10-30T16:57:44Z
-- Pull Shark batch entry 7 at 2026-10-30T16:57:52Z
-- Pull Shark batch entry 8 at 2026-10-30T16:58:00Z
-- Pull Shark batch entry 9 at 2026-10-30T16:58:09Z
-- Pull Shark batch entry 10 at 2026-10-30T16:58:18Z
-- Pull Shark batch entry 11 at 2026-10-30T16:58:27Z
-- Pull Shark batch entry 12 at 2026-10-30T16:58:35Z
-- Pull Shark batch entry 13 at 2026-10-30T16:58:43Z
-- Pull Shark batch entry 14 at 2026-10-30T16:58:51Z
-- Pull Shark batch entry 15 at 2026-10-30T16:58:59Z
-- Pull Shark batch entry 16 at 2026-10-30T16:59:08Z
-- Pull Shark batch entry 17 at 2026-10-30T16:59:16Z
-- Pull Shark batch entry 18 at 2026-10-30T16:59:24Z
-- Pull Shark batch entry 19 at 2026-10-30T16:59:34Z
-- Pull Shark batch entry 20 at 2026-10-30T16:59:44Z
-
-- Pair Extraordinaire retry after collaborator write access: 2026-10-30T17:02:54Z
+- Pair Extraordinaire native API attempt: 2026-10-30T17:40:22Z

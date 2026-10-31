@@ -1,6 +1,10 @@
 name: Seed Galaxy Brain Q&A
 on:
   workflow_dispatch:
+    inputs:
+      count:
+        description: Number of Q&A discussions to create
+        default: '30'
 permissions:
   discussions: write
   contents: read
@@ -8,36 +12,36 @@ jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
-      - name: Create two Q&A discussions as github-actions[bot]
+      - name: Create Q&A discussions as github-actions
         uses: actions/github-script@v7
         with:
           script: |
-            const repo = await github.rest.repos.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
+            const count = parseInt('${{ inputs.count }}', 10) || 30;
             const cats = await github.graphql(`
               query($owner:String!, $name:String!) {
                 repository(owner:$owner, name:$name) {
                   id
-                  discussionCategories(first:20) {
-                    nodes { id name isAnswerable }
-                  }
+                  discussionCategories(first:20) { nodes { id name isAnswerable } }
                 }
               }
             `, { owner: context.repo.owner, name: context.repo.repo });
             const qa = cats.repository.discussionCategories.nodes.find(c => c.isAnswerable);
             if (!qa) throw new Error('No Q&A category');
-            for (const [title, body] of [
-              ['What command lists files in a directory on Linux?', 'I need the basic shell command to list files. Please answer in Q&A so it can be marked accepted.'],
-              ['What does git status show?', 'Briefly explain what the git status command displays. Please answer so it can be marked accepted.'],
-            ]) {
+            const urls = [];
+            for (let i = 1; i <= count; i++) {
               const created = await github.graphql(`
                 mutation($repo:ID!, $cat:ID!, $title:String!, $body:String!) {
                   createDiscussion(input:{repositoryId:$repo, categoryId:$cat, title:$title, body:$body}) {
                     discussion { number url }
                   }
                 }
-              `, { repo: cats.repository.id, cat: qa.id, title, body });
+              `, {
+                repo: cats.repository.id,
+                cat: qa.id,
+                title: `Galaxy Brain Q${i}: What is 1+${i}?`,
+                body: `Please answer with the numeric result of 1+${i}. This is a Q&A for accepted-answer achievements.`
+              });
+              urls.push(created.createDiscussion.discussion.url);
               console.log(created.createDiscussion.discussion.url);
             }
+            core.setOutput('count', String(urls.length));

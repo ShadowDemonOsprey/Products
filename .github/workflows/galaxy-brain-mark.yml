@@ -1,6 +1,10 @@
 name: Mark Galaxy Brain answers
 on:
   workflow_dispatch:
+    inputs:
+      comment_ids:
+        description: Comma-separated GraphQL comment node IDs
+        required: true
 permissions:
   discussions: write
 jobs:
@@ -11,10 +15,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const ids = [
-              'DC_kwDOTXzC9M4BJniT',
-              'DC_kwDOTXzC9M4BJniV',
-            ];
+            const ids = '${{ inputs.comment_ids }}'.split(',').map(s => s.trim()).filter(Boolean);
             for (const id of ids) {
               const res = await github.graphql(`
                 mutation($id:ID!) {
@@ -23,5 +24,5 @@ jobs:
                   }
                 }
               `, { id });
-              console.log(JSON.stringify(res, null, 2));
+              console.log(JSON.stringify(res));
             }
